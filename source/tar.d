@@ -324,7 +324,7 @@ public class TarPolicy
     /**
      * Deserialize method which loads data from a tar archive.
      */
-    public static void deserialize(void[] data, DirectoryImpl root)
+    public static void deserialize(Filter)(void[] data, Archive!(TarPolicy,Filter) archive)
     {
         char numNullHeaders = 0;
         
@@ -359,22 +359,7 @@ public class TarPolicy
                 // Insert the file into the file list
                 if(cast(TarTypeFlag)(header.linkId) == TarTypeFlag.directory)
                 {
-                    DirectoryImpl dir;
-                    if(filename == "/")
-                    {
-                        dir = root;
-                    }
-                    else
-                    {
-                        if(filename[$-1] == '/')
-                        {
-                            dir = root.addDirectory(split(filename, "/")[0 .. $-1]);
-                        }
-                        else
-                        {
-                            dir = root.addDirectory(split(filename, "/"));
-                        }
-                    }
+                    DirectoryImpl dir = archive.addDirectory(filename);
                     
                     if(header.magic == "ustar\0")
                     {
@@ -391,7 +376,8 @@ public class TarPolicy
                     file.modificationTime = octalStrToLong(header.modificationTime);
                     file.typeFlag = cast(TarTypeFlag)(header.linkId);
                     
-                    root.addFile(split(file.path, "/"), file);
+                    archive.addFile(file);
+
                     if(header.magic == "ustar\0")
                     {
                         file.owner = cast(string)header.owner;
@@ -419,7 +405,7 @@ public class TarPolicy
     /**
      * Serialize method which writes data to a tar archive
      */
-    public static void[] serialize(DirectoryImpl root)
+    public static void[] serialize(Filter)(Archive!(TarPolicy,Filter) archive)
     {
         ubyte[] serializeDirectory(DirectoryImpl dir, bool isRoot = false)
         {
@@ -477,7 +463,7 @@ public class TarPolicy
         }
         
         auto finalResult = appender!(ubyte[])();
-        finalResult.put(serializeDirectory(root, true));
+        finalResult.put(serializeDirectory(archive.root, true));
         finalResult.put(nullArray!ubyte(1024));
         
         return finalResult.data;

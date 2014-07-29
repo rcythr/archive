@@ -254,12 +254,10 @@ public class ZipPolicy
     /**
      * Deserialize method which loads data from a zip archive.
      */
-    public static void deserialize(void[] data, DirectoryImpl directory, out Properties properties)
+    public static void deserialize(Filter)(void[] data, Archive!(ZipPolicy, Filter) archive)
     {
         int iend, i;
         int endrecoffset;
-    
-        properties = new Properties();
     
         // Helper functions
         ushort getUShort()
@@ -296,7 +294,7 @@ public class ZipPolicy
                     continue;
                 }
                 
-                properties.comment = cast(string)(data[i .. i + endcommentlength]);
+                archive.properties.comment = cast(string)(data[i .. i + endcommentlength]);
                 endrecoffset = i - 22;
                 break;
             }
@@ -360,11 +358,11 @@ public class ZipPolicy
             // Add the Member to the Listing
             if(file.path.endsWith("/"))
             {
-                directory.addDirectory(split(file.path, "/")[0 .. $-1]);
+                archive.addDirectory(file.path);
             }
             else
             {
-                directory.addFile(split(file.path, "/"), file);
+                archive.addFile(file);
             }
         }
         if( i != directoryOffset + directorySize)
@@ -374,22 +372,22 @@ public class ZipPolicy
     /**
      * Serialize method which writes data to a zip archive
      */
-    public static void[] serialize(DirectoryImpl root, ref Properties properties)
+    public static void[] serialize(Filter)(Archive!(ZipPolicy, Filter) archive)
     {
-        if(properties.comment.length > 0xFFFF)
+        if(archive.properties.comment.length > 0xFFFF)
             throw new ZipException("Archive comment longer than 655535");
          
         // Ensure each file is compressed; compute size
         uint archiveSize = 0;
         uint directorySize = 0;
-        foreach(file; &root.filesOpApply)
+        foreach(file; archive.files)
         {
             file.compress();
             archiveSize += 30 + file._path.length + file.extra.length + file._compressedData.length;
             directorySize += 46 + file._path.length + file.extra.length + file.comment.length;
         }
         
-        ubyte[] data = new ubyte[archiveSize + directorySize + 22 + properties.comment.length];
+        ubyte[] data = new ubyte[archiveSize + directorySize + 22 + archive.properties.comment.length];
         
         // Helper Functions
         uint i = 0;
@@ -406,7 +404,7 @@ public class ZipPolicy
         }
         
         // Store Records
-        foreach(file ; &root.filesOpApply)
+        foreach(file ; archive.files)
         {
             file._offset = i;
             data[i .. i + 4] = RECORD_MAGIC_NUM;
@@ -435,7 +433,7 @@ public class ZipPolicy
         // Store Directory Entries
         uint directoryOffset = i;
         ushort numEntries = 0;
-        foreach(file ; &root.filesOpApply)
+        foreach(file ; archive.files)
         {
             data[i .. i+4] = DIRECTORY_MAGIC_NUM;
             i += 4;
@@ -478,9 +476,9 @@ public class ZipPolicy
         putUShort(numEntries); // Total Number of Entries
         putUInt(directorySize);
         putUInt(directoryOffset);
-        putUShort(cast(ushort)properties.comment.length);
+        putUShort(cast(ushort)archive.properties.comment.length);
         
-        data[i .. data.length] = (cast(ubyte[])properties.comment)[];
+        data[i .. data.length] = (cast(ubyte[])archive.properties.comment)[];
         
         // Return result
         return cast(void[])data;
