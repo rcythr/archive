@@ -1,0 +1,9 @@
+{
+	"name": "archive",
+    "targetType": "library",
+	"description": "An archive library that supports zip, tar, and targz written entirely in D (with underlying gz implementation from zlib).",
+	"copyright": "Copyright © 2014, Richard Laughlin",
+    "license": "Boost License 1.0",
+	"authors": ["Richard 'rcythr' Laughlin"],
+	"dependencies": {}
+}
