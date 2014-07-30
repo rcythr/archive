@@ -9,6 +9,38 @@ Authors: Refactored into Policy by Richard W Laughlin Jr.
          Original zip code by $(WEB digitalmars.com, Walter Bright)
 
 Source: http://github.com/rcythr/archive 
+
+Policy for the Archive template which provides reading and writing of Zip files.
+
+Reading Usage:
+---
+import archive.zip;
+import std.stdio;
+
+auto archive = new ZipArchive(std.file.read("my.zip");
+
+foreach(file; archive.files)
+{
+    writeln("Filename: ", file.path);
+    writeln("Data: ", file.data);
+}
+
+---
+
+Writing Usage:
+---
+import archive.zip;
+
+auto archive = new ZipArchive();
+
+auto file = new ZipArchive.File("languages/awesome.txt");
+file.data = "D\n"; // can also set to immutable(ubyte)[]
+archive.addFile(file);
+
+std.file.write("lang.zip", cast(ubyte[])archive.serialize());
+
+---
+
 */
 
 module archive.zip;
@@ -64,25 +96,24 @@ public class ZipPolicy
     private static immutable(ubyte[]) END_DIRECTORY_MAGIC_NUM = cast(immutable(ubyte[]))"PK\x05\x06";
     
     /**
-     * Class for directories
+     * Directory implementation for Zip archives. Provides any additional functionality required by ZipArchives.
      */
     public static class DirectoryImpl : ArchiveDirectory!(ZipPolicy) 
     {
-        this() { }
-        this(string path) { super(path); }
-        this(string[] path) { super(path); }
+        public this() { }
+        public this(string path) { super(path); }
+        public this(string[] path) { super(path); }
     }
     
     /**
-     * Class for files
+     * File implementation for Zip archives. Provides any additional functionality required of files by ZipArchives.
      */
     public static class FileImpl : ArchiveMember
     {    
-        this() { super(false); }
-        this(string path) { super(false, path); }
-        this(string[] path) { super(false, path); }
+        public this(string path) { super(false, path); }
+        public this(string[] path) { super(false, path); }
 
-        /**
+        /*
          * Compresses the uncompressed data in this file (if needed).
          */
         private void decompress() 
@@ -106,7 +137,7 @@ public class ZipPolicy
             }
         }
         
-        /**
+        /*
          * Decompresses the compressed data in this file (if needed).
          */
         private void compress() 
@@ -132,7 +163,7 @@ public class ZipPolicy
         }
         
         /**
-         * Returns the decompressed data.
+         * Returns: the decompressed data.
          */
         @property public immutable(ubyte)[] data()
         {
@@ -153,13 +184,14 @@ public class ZipPolicy
             _crc32 = std.zlib.crc32(0, cast(void[])_decompressedData);
         }
         
+        /** ditto */
         @property public void data(string newdata)
         {
             data(cast(immutable(ubyte)[])newdata);
         }
         
         /**
-         * Returns the compressed data
+         * Returns: the compressed data
          */
         @property public immutable(ubyte)[] compressed()
         {
@@ -168,9 +200,13 @@ public class ZipPolicy
         }
         
         /**
-         * Getter and setting for compression method
+         * Returns: the compression method.
          */
         @property public CompressionMethod compressionMethod() { return _compressionMethod; }
+        
+        /**
+         * Sets the compression method that will be used.
+         */
         @property public void compressionMethod(CompressionMethod method)
         {
             if(method != _compressionMethod)
@@ -188,10 +224,30 @@ public class ZipPolicy
          * Additional data stored within the zip archive for this file.
          */
         public ubyte[] extra;
+        
+        /**
+         * The comment for the member of the archive.
+         */
         public string comment = "";
+        
+        /**
+         * The time when the file was last modified.
+         */
         public DosFileTime modificationTime;
+        
+        /**
+         * Zip related flags specific for this member, as specified by the Zip format documentation.
+         */
         public ushort flags;
+        
+        /**
+         * The internal attributes specific to this member, as specified by the Zip format documentation.
+         */
         public ushort internalAttributes;
+        
+        /**
+         * The internal attributes specific to this member, as specified by the Zip format documentation.
+         */
         public uint externalAttributes;
         
         private immutable(ubyte)[] _compressedData = null;
@@ -204,17 +260,17 @@ public class ZipPolicy
     }
     
     /**
-     * Class for file-level data 
+     * Archive-wide properties for ZipArchives.
      */
     public static class Properties
     {
         /**
-         * File comment stored in the archive.
+         * Archive-wide File comment stored in the archive.
          */
         public string comment;
     }
     
-    /**
+    /*
      * Fetches the local header data for a file in the archive - most importantly the stored data
      */
     private static void expandMember(void[] data, FileImpl file, int offset)
@@ -252,7 +308,7 @@ public class ZipPolicy
     }
     
     /**
-     * Deserialize method which loads data from a zip archive.
+     * Deserialize method which loads data from a zip archive and stores it in archive.
      */
     public static void deserialize(Filter)(void[] data, Archive!(ZipPolicy, Filter) archive)
     {
@@ -370,7 +426,7 @@ public class ZipPolicy
     }
     
     /**
-     * Serialize method which writes data to a zip archive
+     * Serialize method which writes data stored in the archive to an array and returns it.
      */
     public static void[] serialize(Filter)(Archive!(ZipPolicy, Filter) archive)
     {

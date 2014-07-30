@@ -9,6 +9,38 @@ License: $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0).
 Authors: Richard W Laughlin Jr.
 
 Source: http://github.com/rcythr/archive 
+
+Policy for the Archive template which provides reading and writing of Tar files.
+
+Reading Usage:
+---
+import archive.tar;
+import std.stdio;
+
+auto archive = new TarArchive(std.file.read("my.tar");
+
+foreach(file; archive.files)
+{
+    writeln("Filename: ", file.path);
+    writeln("Data: ", file.data);
+}
+
+---
+
+Writing Usage:
+---
+import archive.tar;
+
+auto archive = new TarArchive();
+
+auto file = new TarArchive.File("languages/awesome.txt");
+file.data = "D\n"; // can also set to immutable(ubyte)[]
+archive.addFile(file);
+
+std.file.write("lang.tar", cast(ubyte[])archive.serialize());
+
+---
+
 */
 
 module archive.tar;

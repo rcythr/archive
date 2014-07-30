@@ -8,6 +8,40 @@ License: $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0).
 Authors: Richard W Laughlin Jr.
 
 Source: http://github.com/rcythr/archive 
+
+Filter class which can be used by the Archive class to compress/decompress files into a .gz format.
+
+The only current available alias which uses this filter is the TarGzArchive.
+
+Reading Usage:
+---
+import archive.targz;
+import std.stdio;
+
+auto archive = new TarGzArchive(std.file.read("my.tar.gz");
+
+foreach(file; archive.files)
+{
+    writeln("Filename: ", file.path);
+    writeln("Data: ", file.data);
+}
+
+---
+
+Writing Usage:
+---
+import archive.targz;
+
+auto archive = new TarGzArchive();
+
+auto file = new TarGzArchive.File("languages/awesome.txt");
+file.data = "D\n"; // can also set to immutable(ubyte)[]
+archive.addFile(file);
+
+std.file.write("lang.tar.gz", cast(ubyte[])archive.serialize());
+
+---
+
 */
 
 module archive.targz;
