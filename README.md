@@ -88,9 +88,9 @@ Because of the shared Archive template class the same mechanisms hold true for r
     // Changed my mind about adding all those empty directories
     zip.removeEmptyDirectories();
     
-    std.file.write("dogs.tar", cast(ubyte[])dogs);
-    std.file.write("cats.tar.gz", cast(ubyte[])cats);
-    std.file.write("raw.zip", cast(ubyte[])raw);
+    std.file.write("dogs.tar", cast(ubyte[])dogs.serialize());
+    std.file.write("cats.tar.gz", cast(ubyte[])cats.serialize());
+    std.file.write("raw.zip", cast(ubyte[])raw.serialize());
 
 ##Usage
 
