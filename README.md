@@ -193,11 +193,11 @@ Adding a file is a simple operation. Simply create the file with the proper path
     // If the data directory does not already exist in the archive it will be created on insertion.
     auto file2 = new ZipArchive.File("data/raw.txt");
 
-    file.path = "apples.txt"
-    file.data = apples; // data can take type string
-    archive.addFile(archive);
+    file1.path = "apples.txt"
+    file1.data = apples; // data can take type string
+    archive.addFile(file1);
 
-    file.data = rawdata; // It can also take an immutable ubyte array.
+    file2.data = rawdata; // It can also take an immutable ubyte array.
     archive.addFile(file2);
 
 #### Adding a directory
