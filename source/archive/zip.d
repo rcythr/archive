@@ -110,7 +110,7 @@ public class ZipPolicy
      */
     public static class FileImpl : ArchiveMember
     {  
-        public this() { super(false, ""); }
+        public this() { super(false); }
         public this(string path) { super(false, path); }
         public this(string[] path) { super(false, path); }
 
