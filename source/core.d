@@ -712,21 +712,21 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     public File[string] files;
 }
 
-unittest
+version(unittest)
 {
-    class MockPolicy
+    private class MockPolicy
     {
         public static immutable(bool) isReadOnly = false;
         public static immutable(bool) hasProperties = false;
 
-        public class FileImpl : ArchiveMember 
+        public static class FileImpl : ArchiveMember 
         { 
             public this() { super(false); }
             public this(string path) { super(false, path); } 
             public this(string[] path) { super(false, path); }
         }
         
-        public class DirectoryImpl : ArchiveDirectory!(MockPolicy)
+        public static class DirectoryImpl : ArchiveDirectory!(MockPolicy)
         { 
             public this() { }
             public this(string path) { super(path); } 
@@ -743,7 +743,7 @@ unittest
         }
     }
 
-    class MockFilter
+    private class MockFilter
     {
         public static void[] compress(void[] data)
         {
@@ -755,7 +755,49 @@ unittest
             return data;
         }
     }
-    
+        
+    private class MockROPolicy
+    {
+        public static immutable(bool) isReadOnly = true;
+        public static immutable(bool) hasProperties = true;
+
+        public static class FileImpl : ArchiveMember 
+        { 
+            public this() { super(false); }
+            public this(string path) { super(false, path); } 
+            public this(string[] path) { super(false, path); }
+        }
+
+        public static class DirectoryImpl : ArchiveDirectory!MockROPolicy 
+        {
+            public this() { super(); }
+            public this(string path) { super(path); } 
+            public this(string[] path) { super(path); }
+        }
+        
+        public static class Properties { }
+        
+        public static void deserialize(Filter)(void[] data, Archive!(MockROPolicy, Filter) archive)
+        {
+            char[] cdata = (cast(char[])data);
+            assert(std.algorithm.all!"a == 'a'"(cdata));
+        }
+    }
+
+    private class MockROFilter
+    {
+        public static void[] decompress(void[] data)
+        {
+            // Fill it all with a's. We'll test in the deserialize that this is held.
+            char[] cdata = (cast(char[])data);
+            cdata[] = 'a';
+            return data;
+        }
+    }
+}
+
+unittest
+{
     alias ArchType = Archive!(MockPolicy, MockFilter);
     alias File = MockPolicy.FileImpl;
     alias Directory = MockPolicy.DirectoryImpl;
@@ -829,45 +871,6 @@ unittest
 
 unittest
 {
-    struct MockROPolicy
-    {
-        public static immutable(bool) isReadOnly = true;
-        public static immutable(bool) hasProperties = true;
-
-        public class FileImpl : ArchiveMember 
-        { 
-            public this() { super(false); }
-            public this(string path) { super(false, path); } 
-            public this(string[] path) { super(false, path); }
-        }
-
-        public class DirectoryImpl : ArchiveDirectory!MockROPolicy 
-        {
-            public this() { super(); }
-            public this(string path) { super(path); } 
-            public this(string[] path) { super(path); }
-        }
-        
-        public class Properties { }
-        
-        public static void deserialize(Filter)(void[] data, Archive!(MockROPolicy, Filter) archive)
-        {
-            char[] cdata = (cast(char[])data);
-            assert(std.algorithm.all!"a == 'a'"(cdata));
-        }
-    }
-
-    struct MockROFilter
-    {
-        public static void[] decompress(void[] data)
-        {
-            // Fill it all with a's. We'll test in the deserialize that this is held.
-            char[] cdata = (cast(char[])data);
-            cdata[] = 'a';
-            return data;
-        }
-    }
-    
     alias ArchType = Archive!(MockROPolicy, MockROFilter);
 
     // Read only archive instantiation tests
