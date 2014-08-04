@@ -109,7 +109,8 @@ public class ZipPolicy
      * File implementation for Zip archives. Provides any additional functionality required of files by ZipArchives.
      */
     public static class FileImpl : ArchiveMember
-    {    
+    {  
+        public this() { super(false, ""); }
         public this(string path) { super(false, path); }
         public this(string[] path) { super(false, path); }
 

@@ -396,7 +396,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Adds a member to the archive, creating subdirectories as necessary.
      */
-    void addFile(string[] pathParts, File file, uint i=0)
+    public void addFile(string[] pathParts, File file, uint i=0)
     {
         if(i == pathParts.length-1)
         {
@@ -432,7 +432,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Adds a chain of subdirectories, creating them as necessary.
      */
-    Directory addDirectory(string[] pathParts, uint i=0)
+    public Directory addDirectory(string[] pathParts, uint i=0)
     {
         // Empty string handles case where root directory is added.
         // Some tar archivers will place it into the archive to store permissions/ownership
@@ -463,7 +463,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Attempts to remove a member from the archive.
      */
-    bool removeFile(string[] pathParts, uint i=0)
+    public bool removeFile(string[] pathParts, uint i=0)
     {
         if(i == pathParts.length-1)
         {
@@ -483,7 +483,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Attempts to remove a directory from the archive.
      */
-    bool removeDirectory(string[] pathParts, uint i=0)
+    public bool removeDirectory(string[] pathParts, uint i=0)
     {
         if(i == pathParts.length-1)
         {
@@ -503,7 +503,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Removes all empty directories from the archive. 
      */
-    uint removeEmptyDirectories()
+    public uint removeEmptyDirectories()
     {
         uint count = 0;
 
@@ -534,7 +534,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Returns a file from the directory if it exists, otherwise null.
      */
-    File getFile(string[] pathParts, uint i=0)
+    public File getFile(string[] pathParts, uint i=0)
     {
         if(i == pathParts.length-1)
         {
@@ -553,7 +553,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Returns the number of files up to n levels deep. Current directory is level 0.
      */
-    size_t numFiles(size_t n, size_t cur=0) 
+    public size_t numFiles(size_t n, size_t cur=0) 
     {
         if(n == cur)
         {
@@ -573,7 +573,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Returns the number of directories up to n levels deep. Current directory is level 0.
      */
-    size_t numDirectories(size_t n, size_t cur=0) 
+    public size_t numDirectories(size_t n, size_t cur=0) 
     { 
         if(n == cur)
         {
@@ -593,7 +593,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Returns the number of files and directories up to n levels deep. Current directory is level 0.
      */
-    size_t numMembers(size_t n, size_t cur=0) 
+    public size_t numMembers(size_t n, size_t cur=0) 
     { 
         if(n == cur)
         {
@@ -613,7 +613,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Returns a directory from this directory if it exists, otherwise null.
      */
-    Directory getDirectory(string[] pathParts, uint i=0)
+    public Directory getDirectory(string[] pathParts, uint i=0)
     {
         Directory* dir = pathParts[i] in directories;
         if(!dir)
@@ -714,23 +714,23 @@ public class ArchiveDirectory(Policy) : ArchiveMember
 
 unittest
 {
-    struct MockPolicy
+    class MockPolicy
     {
         public static immutable(bool) isReadOnly = false;
         public static immutable(bool) hasProperties = false;
 
         public class FileImpl : ArchiveMember 
         { 
-            this() { super(false); }
-            this(string path) { super(false, path); } 
-            this(string[] path) { super(false, path); }
+            public this() { super(false); }
+            public this(string path) { super(false, path); } 
+            public this(string[] path) { super(false, path); }
         }
         
-        public class DirectoryImpl : ArchiveDirectory!MockPolicy 
+        public class DirectoryImpl : ArchiveDirectory!(MockPolicy)
         { 
-            this() { }
-            this(string path) { super(path); } 
-            this(string[] path) { super(path); }
+            public this() { }
+            public this(string path) { super(path); } 
+            public this(string[] path) { super(path); }
         }
         
         public static void deserialize(Filter)(void[] data, Archive!(MockPolicy, Filter) archive)
@@ -743,7 +743,7 @@ unittest
         }
     }
 
-    struct MockFilter
+    class MockFilter
     {
         public static void[] compress(void[] data)
         {
@@ -836,16 +836,16 @@ unittest
 
         public class FileImpl : ArchiveMember 
         { 
-            this() { super(false); }
-            this(string path) { super(false, path); } 
-            this(string[] path) { super(false, path); }
+            public this() { super(false); }
+            public this(string path) { super(false, path); } 
+            public this(string[] path) { super(false, path); }
         }
 
         public class DirectoryImpl : ArchiveDirectory!MockROPolicy 
         {
-            this() { super(); }
-            this(string path) { super(path); } 
-            this(string[] path) { super(path); }
+            public this() { super(); }
+            public this(string path) { super(path); } 
+            public this(string[] path) { super(path); }
         }
         
         public class Properties { }

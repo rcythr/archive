@@ -46,6 +46,7 @@ std.file.write("lang.tar", cast(ubyte[])archive.serialize());
 module archive.tar;
 import archive.core;
 
+private import std.algorithm;
 private import std.array;
 private import std.container;
 private import std.conv;
@@ -111,6 +112,12 @@ public enum TarTypeFlag : char
 
 /**
  * Policy class for reading and writing tar archives.
+ * Features:
+ *      + Handles files and directories of arbitrary size
+ *      + Files and directories may have permissions
+ *      + Files and directories may optionally set an owner and group name/id.
+ * Limitations:
+ *      + File paths may not exceed 255 characters - this is due to the format specification.
  */
 public class TarPolicy
 {   
@@ -162,7 +169,7 @@ public class TarPolicy
     private static char[] strToBytes(string str, uint length)
     {
         char[] result = new char[length];
-        result[0 .. str.length] = str;
+        result[0 .. min(str.length, length)] = str;
         result[str.length .. $] = 0;
         return result;
     }
@@ -212,7 +219,7 @@ public class TarPolicy
         char[32] group;
         char[8] deviceMajorNumber;
         char[8] deviceMinorNumber;
-        char[155] filePrefix;
+        char[155] prefix;
         char[12] padding;
         
         bool confirmChecksum()
@@ -249,7 +256,7 @@ public class TarPolicy
             group = 0;
             deviceMajorNumber = 0;
             deviceMinorNumber = 0;
-            filePrefix = 0;
+            prefix = 0;
             padding = 0;
         }
         
@@ -271,7 +278,7 @@ public class TarPolicy
             sum += unsignedSum(group);
             sum += unsignedSum(deviceMajorNumber);
             sum += unsignedSum(deviceMinorNumber);
-            sum += unsignedSum(filePrefix);
+            sum += unsignedSum(prefix);
             return sum;
         }
         
@@ -293,7 +300,7 @@ public class TarPolicy
             sum += signedSum(group);
             sum += signedSum(deviceMajorNumber);
             sum += signedSum(deviceMinorNumber);
-            sum += signedSum(filePrefix);
+            sum += signedSum(prefix);
             return sum;
         }
     }
@@ -313,8 +320,8 @@ public class TarPolicy
         public ulong modificationTime;
         
         // Posix Extended Fields
-        public string owner;
-        public string group;
+        public string owner = "";
+        public string group = "";
     }
     
     /**
@@ -322,9 +329,9 @@ public class TarPolicy
      */
     public static class FileImpl : ArchiveMember
     {
-        this() { super(false, ""); }
-        this(string path) { super(false, path); }
-        this(string[] path) { super(false, path); }
+        public this() { super(false, ""); }
+        public this(string path) { super(false, path); }
+        public this(string[] path) { super(false, path); }
 
         public uint permissions = TarPermissions.FILE | TarPermissions.ALL;
         public ulong modificationTime;
@@ -387,17 +394,24 @@ public class TarPolicy
 
                 // Make sure we've dropped off any trailing nuls (strip doens't work because strip doesn't check for nuls!)
                 string filename = trunc(cast(string)header.filename);
+                string owner = "";
+                string group = "";
+                
+                if(header.magic == "ustar\0")
+                {
+                    filename = trunc(cast(string)header.prefix) ~ filename;
+                    owner = trunc(cast(string)header.owner);
+                    group = trunc(cast(string)header.group);
+                }
 
                 // Insert the file into the file list
                 if(cast(TarTypeFlag)(header.linkId) == TarTypeFlag.directory)
                 {
                     DirectoryImpl dir = archive.addDirectory(filename);
                     
-                    if(header.magic == "ustar\0")
-                    {
-                        dir.owner = cast(string)header.owner;
-                        dir.group = cast(string)header.group;
-                    }
+                    // Add additional ustar properties (or "" if not present)
+                    dir.owner = owner;
+                    dir.group = group;
                 }
                 else
                 {
@@ -410,11 +424,9 @@ public class TarPolicy
                     
                     archive.addFile(file);
 
-                    if(header.magic == "ustar\0")
-                    {
-                        file.owner = cast(string)header.owner;
-                        file.group = cast(string)header.group;
-                    }
+                    // Add additional ustar properties (or "" if not present)
+                    file.owner = owner;
+                    file.group = group;
                     
                     if(file.typeFlag == TarTypeFlag.hardLink || file.typeFlag == TarTypeFlag.symbolicLink)
                     {
@@ -447,9 +459,33 @@ public class TarPolicy
             // Write out all files in the directory
             foreach(file; dir.files)
             {
-                // Write out file header
                 header.nullify();
-                header.filename = strToBytes(file._path, 100);
+                // Determine if we need the ustar extension
+                string filename = file._path;
+                string prefix = "";
+                bool needUstar = false;
+
+                // Compute the proper filename and prefix, if needed.
+                // Throw an exception if a filepath exceeds 255 characters.
+                if(file._path.length > 100)
+                {
+                    prefix = file._path[0 .. $-100];
+                    filename = file._path[$-100 .. $];
+
+                    // Check if we exceed the maximum filepath length for tar archives.
+                    if(prefix.length > 155)
+                    {
+                        throw new TarException("Pths cannot exceed 255 characters in tar archives.");
+                    }
+
+                    header.prefix = strToBytes(prefix, 155);
+
+                    needUstar = true;
+                }
+
+
+                // Write out file header
+                header.filename = strToBytes(filename, 100);
                 header.mode = (rightJustify(intToOctalStr(file.permissions), 7) ~ "\0");
                 header.ownerId = rightJustify(intToOctalStr(0), 7) ~ "\0";
                 header.groupId = rightJustify(intToOctalStr(0), 7) ~ "\0";
@@ -458,6 +494,27 @@ public class TarPolicy
                 header.linkId = cast(char)(file.typeFlag);
                 header.linkedFilename = strToBytes(file.linkName, 100);
                 
+                // Set owner name if needed.
+                if(file.owner !is null && file.owner != "")
+                {
+                    header.owner = strToBytes(file.owner, 32); 
+                    needUstar = true;
+                }
+                
+                // Set group name if needed
+                if(file.group !is null && file.group != "")
+                {
+                    header.group = strToBytes(file.group, 32);
+                    needUstar = true;
+                }
+                
+                // Only set the ustar extensions if needed.
+                if(needUstar)
+                {
+                    header.magic = strToBytes("ustar", 6);
+                }
+
+                // Compute checksum last.
                 header.checksum = rightJustify(intToOctalStr(header.calculateUnsignedChecksum()), 7) ~ "\0"; 
                 
                 // Write out the header
@@ -474,7 +531,29 @@ public class TarPolicy
             foreach(directory; dir.directories)
             {
                 header.nullify();
-                header.filename = strToBytes(directory._path, 100);
+
+                string dirname = directory._path;
+                bool needUstar = false;
+                
+                // Compute the proper filename and prefix, if needed.
+                // Throw an exception if a filepath exceeds 255 characters.
+                if(directory._path.length > 100)
+                {
+                    string prefix = directory._path[0 .. $-100];
+                    dirname = directory._path[$-100 .. $];
+
+                    // Check if we exceed the maximum filepath length for tar archives.
+                    if(prefix.length > 155)
+                    {
+                        throw new TarException("Paths cannot exceed 255 characters in tar archives.");
+                    }
+                    
+                    header.prefix = strToBytes(prefix, 155);
+
+                    needUstar = true;
+                }
+
+                header.filename = strToBytes(dirname, 100);
                 header.mode = rightJustify(intToOctalStr(directory.permissions), 7) ~ "\0";
                 header.ownerId = rightJustify(intToOctalStr(0), 7) ~ "\0";
                 header.groupId = rightJustify(intToOctalStr(0), 7) ~ "\0";
@@ -482,6 +561,27 @@ public class TarPolicy
                 header.modificationTime = rightJustify(longToOctalStr(directory.modificationTime), 11) ~ " ";
                 header.linkId = cast(char)(TarTypeFlag.directory);
                 
+                // Set owner name if needed.
+                if(directory.owner !is null && directory.owner != "")
+                {
+                    header.owner = strToBytes(directory.owner, 32); 
+                    needUstar = true;
+                }
+                
+                // Set group name if needed
+                if(directory.group !is null && directory.group != "")
+                {
+                    header.group = strToBytes(directory.group, 32);
+                    needUstar = true;
+                }
+                
+                // Only set the ustar extensions if needed.
+                if(needUstar)
+                {
+                    header.magic = strToBytes("ustar", 6);
+                }
+
+                // Compute checksum last.
                 header.checksum = rightJustify(intToOctalStr(header.calculateUnsignedChecksum()), 7) ~ "\0"; 
                 
                 // Write out the header
