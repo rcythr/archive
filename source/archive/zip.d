@@ -400,7 +400,7 @@ public class ZipPolicy
             if(i + nameLen + extraLen + commentLen > directoryOffset + directorySize)
                 throw new ZipException("Invalid Directory Entry 2");
                 
-            file._path = cast(string)(data[i .. i + nameLen]);
+            file.path = cast(string)(data[i .. i + nameLen]);
             i += nameLen;
             
             file.extra = cast(ubyte[])data[i .. i + extraLen];
@@ -440,8 +440,8 @@ public class ZipPolicy
         foreach(file; archive.files)
         {
             file.compress();
-            archiveSize += 30 + file._path.length + file.extra.length + file._compressedData.length;
-            directorySize += 46 + file._path.length + file.extra.length + file.comment.length;
+            archiveSize += 30 + file.path.length + file.extra.length + file._compressedData.length;
+            directorySize += 46 + file.path.length + file.extra.length + file.comment.length;
         }
         
         ubyte[] data = new ubyte[archiveSize + directorySize + 22 + archive.properties.comment.length];
@@ -474,11 +474,11 @@ public class ZipPolicy
             putUInt(file._crc32);
             putUInt(cast(uint)file._compressedData.length);
             putUInt(cast(uint)file._decompressedData.length);
-            putUShort(cast(ushort)file._path.length);
+            putUShort(cast(ushort)file.path.length);
             putUShort(cast(ushort)file.extra.length);
             
-            data[i .. i + file._path.length] = (cast(ubyte[])file._path)[];
-            i += file._path.length;
+            data[i .. i + file.path.length] = (cast(ubyte[])file.path)[];
+            i += file.path.length;
             
             data[i .. i + file.extra.length] = (cast(ubyte[])file.extra)[];
             i += file.extra.length;
@@ -503,7 +503,7 @@ public class ZipPolicy
             putUInt(file._crc32);
             putUInt(cast(uint)file._compressedData.length);
             putUInt(cast(uint)file._decompressedSize);
-            putUShort(cast(ushort)file._path.length);
+            putUShort(cast(ushort)file.path.length);
             putUShort(cast(ushort)file.extra.length);
             putUShort(cast(ushort)file.comment.length);
             putUShort(0); // Disk Number
@@ -511,8 +511,8 @@ public class ZipPolicy
             putUInt(file.externalAttributes);
             putUInt(file._offset);
             
-            data[i .. i + file._path.length] = (cast(ubyte[])file._path)[];
-            i += file._path.length;
+            data[i .. i + file.path.length] = (cast(ubyte[])file.path)[];
+            i += file.path.length;
             
             data[i .. i + file.extra.length] = (cast(ubyte[])file.extra)[];
             i += file.extra.length;

@@ -416,7 +416,7 @@ public class TarPolicy
                 else
                 {
                     FileImpl file = new FileImpl();
-                    file._path = filename;
+                    file.path = filename;
                     file.permissions = octalStrToInt(header.mode);
                     uint size = octalStrToInt(header.size);
                     file.modificationTime = octalStrToLong(header.modificationTime);
@@ -461,16 +461,16 @@ public class TarPolicy
             {
                 header.nullify();
                 // Determine if we need the ustar extension
-                string filename = file._path;
+                string filename = file.path;
                 string prefix = "";
                 bool needUstar = false;
 
                 // Compute the proper filename and prefix, if needed.
                 // Throw an exception if a filepath exceeds 255 characters.
-                if(file._path.length > 100)
+                if(file.path.length > 100)
                 {
-                    prefix = file._path[0 .. $-100];
-                    filename = file._path[$-100 .. $];
+                    prefix = file.path[0 .. $-100];
+                    filename = file.path[$-100 .. $];
 
                     // Check if we exceed the maximum filepath length for tar archives.
                     if(prefix.length > 155)
@@ -532,15 +532,15 @@ public class TarPolicy
             {
                 header.nullify();
 
-                string dirname = directory._path;
+                string dirname = directory.path;
                 bool needUstar = false;
                 
                 // Compute the proper filename and prefix, if needed.
                 // Throw an exception if a filepath exceeds 255 characters.
-                if(directory._path.length > 100)
+                if(directory.path.length > 100)
                 {
-                    string prefix = directory._path[0 .. $-100];
-                    dirname = directory._path[$-100 .. $];
+                    string prefix = directory.path[0 .. $-100];
+                    dirname = directory.path[$-100 .. $];
 
                     // Check if we exceed the maximum filepath length for tar archives.
                     if(prefix.length > 155)
