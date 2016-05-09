@@ -779,6 +779,8 @@ version(unittest)
         
         public static void deserialize(Filter)(void[] data, Archive!(MockROPolicy, Filter) archive)
         {
+            static import std.algorithm;
+
             char[] cdata = (cast(char[])data);
             assert(std.algorithm.all!"a == 'a'"(cdata));
         }
