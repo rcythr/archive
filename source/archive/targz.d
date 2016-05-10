@@ -1,7 +1,7 @@
 /**
 Type that implements the TarGz Filter used with the Archive template.
 
-Copyright: Copyright Richard W Laughlin Jr. 2014
+Copyright: Copyright Richard W Laughlin Jr. 2014—2016
 
 License: $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0).
 
