@@ -525,7 +525,8 @@ public class TarPolicy
                 result.put(file._data[0 .. $]);
                 
                 // Write out padding
-                result.put(nullArray!ubyte(512 - (file._data.length % 512)));
+                if(file._data.length % 512 != 0)
+                    result.put(nullArray!ubyte(512 - (file._data.length % 512)));
             }
             
             // Write out all directories in the directory
