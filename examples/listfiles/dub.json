@@ -1,0 +1,14 @@
+{
+	"name": "listfiles",
+	"description": "Lists all files in an archive",
+	"copyright": "Copyright © 2016, webfreak",
+	"authors": [
+		"webfreak"
+	],
+	"dependencies": {
+		"archive": {
+			"path": "../../",
+			"version": "*"
+		}
+	}
+}

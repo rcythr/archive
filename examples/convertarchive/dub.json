@@ -1,0 +1,14 @@
+{
+	"name": "convertarchive",
+	"description": "Converts between zip/tar/tar.gz",
+	"copyright": "Copyright © 2016, webfreak",
+	"authors": [
+		"webfreak"
+	],
+	"dependencies": {
+		"archive": {
+			"path": "../../",
+			"version": "*"
+		}
+	}
+}
