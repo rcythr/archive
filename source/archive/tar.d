@@ -435,7 +435,8 @@ public class TarPolicy
                     
                     file._data = assumeUnique!(ubyte)(cast(ubyte[])data[i .. i + size]);
                     i += size;
-                    i += (512 - (size % 512)); // Skip padding bytes in this chunk (if any)
+                    if(size % 512 != 0)
+                        i += (512 - (size % 512)); // Skip padding bytes in this chunk (if any)
                 }
             }
             else
