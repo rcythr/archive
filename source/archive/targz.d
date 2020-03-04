@@ -58,7 +58,7 @@ private import std.zlib;
  * Filter class which can be used by the Archive class to compress/decompress
  *   files into a .gz format.
  */
-public class GzFilter
+public class GzFilter(int L)
 {
     /**
      * Input data is wrapped with gzip and returned.
@@ -67,7 +67,7 @@ public class GzFilter
     {
         auto result = appender!(ubyte[])();
         
-        Compress compressor = new Compress(HeaderFormat.gzip);
+        Compress compressor = new Compress(L, HeaderFormat.gzip);
         for(uint i=0; i < data.length; i += 1024)
         {
             result.put(cast(ubyte[])compressor.compress(data[i .. min(i+1024, data.length)]));
@@ -98,7 +98,7 @@ public class GzFilter
 /**
  * Convenience alias that simplifies the interface for users
  */
-alias TarGzArchive = Archive!(TarPolicy, GzFilter); 
+alias TarGzArchive = Archive!(TarPolicy, GzFilter!6); 
 
 unittest
 {
