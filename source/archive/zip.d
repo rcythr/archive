@@ -8,7 +8,7 @@ License: $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0).
 Authors: Refactored into Policy by Richard W Laughlin Jr.
          Original zip code by $(WEB digitalmars.com, Walter Bright)
 
-Source: http://github.com/rcythr/archive 
+Source: http://github.com/rcythr/archive
 
 Policy for the Archive template which provides reading and writing of Zip files.
 
@@ -83,33 +83,33 @@ public enum CompressionMethod : ushort
  * Currently lacks support for:
  *      + Multiple disk zip files
  *      + Compression algorithms other than deflate
- *      + Zip64 
+ *      + Zip64
  *      + Encryption
  */
 public class ZipPolicy
 {
     static immutable(bool) isReadOnly = false;
     static immutable(bool) hasProperties = true;
-    
+
     private static immutable(ubyte[]) DIRECTORY_MAGIC_NUM = cast(immutable(ubyte[]))"PK\x01\x02";
     private static immutable(ubyte[]) RECORD_MAGIC_NUM = cast(immutable(ubyte[]))"PK\x03\x04";
     private static immutable(ubyte[]) END_DIRECTORY_MAGIC_NUM = cast(immutable(ubyte[]))"PK\x05\x06";
-    
+
     /**
      * Directory implementation for Zip archives. Provides any additional functionality required by ZipArchives.
      */
-    public static class DirectoryImpl : ArchiveDirectory!(ZipPolicy) 
+    public static class DirectoryImpl : ArchiveDirectory!(ZipPolicy)
     {
         public this() { }
         public this(string path) { super(path); }
         public this(string[] path) { super(path); }
     }
-    
+
     /**
      * File implementation for Zip archives. Provides any additional functionality required of files by ZipArchives.
      */
     public static class FileImpl : ArchiveMember
-    {  
+    {
         public this() { super(false); }
         public this(string path) { super(false, path); }
         public this(string[] path) { super(false, path); }
@@ -117,7 +117,7 @@ public class ZipPolicy
         /*
          * Compresses the uncompressed data in this file (if needed).
          */
-        private void decompress() 
+        private void decompress()
         {
             if(_decompressedData == null)
             {
@@ -137,11 +137,11 @@ public class ZipPolicy
                 }
             }
         }
-        
+
         /*
          * Decompresses the compressed data in this file (if needed).
          */
-        private void compress() 
+        private void compress()
         {
             if(_compressedData == null)
             {
@@ -162,7 +162,7 @@ public class ZipPolicy
                 }
             }
         }
-        
+
         /**
          * Returns: the decompressed data.
          */
@@ -171,7 +171,7 @@ public class ZipPolicy
             decompress();
             return _decompressedData;
         }
-        
+
         /**
          * Sets the decompressed data.
          */
@@ -180,17 +180,17 @@ public class ZipPolicy
             _decompressedData = data;
             _decompressedSize = cast(uint)data.length;
             _compressedData = null;
-            
+
             // Recalculate CRC
             _crc32 = std.zlib.crc32(0, cast(void[])_decompressedData);
         }
-        
+
         /** ditto */
         @property public void data(string newdata)
         {
             data(cast(immutable(ubyte)[])newdata);
         }
-        
+
         /**
          * Returns: the compressed data
          */
@@ -199,12 +199,12 @@ public class ZipPolicy
             compress();
             return _compressedData;
         }
-        
+
         /**
          * Returns: the compression method.
          */
         @property public CompressionMethod compressionMethod() { return _compressionMethod; }
-        
+
         /**
          * Sets the compression method that will be used.
          */
@@ -214,43 +214,43 @@ public class ZipPolicy
             {
                 // First make sure the data is already extracted (if needed)
                 decompress();
-                
+
                 // Clean out stale compressed data
                 _compressionMethod = method;
                 _compressedData = null;
             }
         }
-        
+
         /**
          * Additional data stored within the zip archive for this file.
          */
         public ubyte[] extra;
-        
+
         /**
          * The comment for the member of the archive.
          */
         public string comment = "";
-        
+
         /**
          * The time when the file was last modified.
          */
         public DosFileTime modificationTime;
-        
+
         /**
          * Zip related flags specific for this member, as specified by the Zip format documentation.
          */
         public ushort flags;
-        
+
         /**
          * The internal attributes specific to this member, as specified by the Zip format documentation.
          */
         public ushort internalAttributes;
-        
+
         /**
          * The internal attributes specific to this member, as specified by the Zip format documentation.
          */
         public uint externalAttributes;
-        
+
         private immutable(ubyte)[] _compressedData = null;
         private immutable(ubyte)[] _decompressedData = null;
         private uint _compressedSize;
@@ -259,7 +259,7 @@ public class ZipPolicy
         private uint _offset;
         private CompressionMethod _compressionMethod = CompressionMethod.deflate;
     }
-    
+
     /**
      * Archive-wide properties for ZipArchives.
      */
@@ -270,7 +270,7 @@ public class ZipPolicy
          */
         public string comment;
     }
-    
+
     /*
      * Fetches the local header data for a file in the archive - most importantly the stored data
      */
@@ -282,18 +282,18 @@ public class ZipPolicy
             offset += 2;
             return littleEndianToNative!ushort(result);
         }
-        
+
         uint getUInt()
         {
             ubyte[4] result = cast(ubyte[])data[offset .. offset+4];
             offset += 4;
             return littleEndianToNative!uint(result);
         }
-        
+
         if(data[offset .. offset + 4] != RECORD_MAGIC_NUM)
             throw new ZipException("Invalid directory entry 4");
         offset += 4;
-        
+
         ushort minExtractVersion = getUShort();
         file.flags = getUShort();
         file._compressionMethod = cast(CompressionMethod)getUShort();
@@ -303,11 +303,11 @@ public class ZipPolicy
         file._decompressedSize = max(file._decompressedSize, getUInt());
         ushort namelen = getUShort();
         ushort extralen = getUShort();
-        
+
         int dataOffset = offset + namelen + extralen;
         file._compressedData = assumeUnique!(ubyte)(cast(ubyte[])data[dataOffset .. dataOffset + compressedSize]);
     }
-    
+
     /**
      * Deserialize method which loads data from a zip archive and stores it in archive.
      */
@@ -315,7 +315,7 @@ public class ZipPolicy
     {
         int iend, i;
         int endrecoffset;
-    
+
         // Helper functions
         ushort getUShort()
         {
@@ -323,24 +323,24 @@ public class ZipPolicy
             i += 2;
             return littleEndianToNative!ushort(result);
         }
-        
+
         uint getUInt()
         {
             ubyte[4] result = cast(ubyte[])data[i .. i+4];
             i += 4;
             return littleEndianToNative!uint(result);
         }
-        
+
         // Calculate the ending record
         iend = to!uint(data.length) - 66000;
         if(iend < 0)
             iend = 0;
-        
+
         for(i = to!uint(data.length) - 22; 1; --i)
         {
             if( i < iend )
                 throw new ZipException("No end record.");
-               
+
             if(data[i .. i+4] == END_DIRECTORY_MAGIC_NUM)
             {
                 i += 20;
@@ -350,36 +350,36 @@ public class ZipPolicy
                     i -= 22;
                     continue;
                 }
-                
+
                 archive.properties.comment = cast(string)(data[i .. i + endcommentlength]);
                 endrecoffset = i - 22;
                 break;
             }
         }
         i -= 18;
-        
+
         ushort diskNumber = getUShort();
         ushort diskStartDir = getUShort();
         ushort numEntries = getUShort();
         ushort totalEntries = getUShort();
-        
+
         if(numEntries != totalEntries)
             throw new ZipException("Multiple disk zips not supported");
-            
+
         uint directorySize = getUInt();
         uint directoryOffset = getUInt();
-        
+
         if(directoryOffset + directorySize > endrecoffset)
             throw new ZipException("Corrupted Directory");
-        
+
         i = directoryOffset;
         for(int n = 0; n < numEntries; ++n)
         {
             if(data[i .. i + 4] != DIRECTORY_MAGIC_NUM)
                 throw new ZipException("Invalid directory entry 1");
-            
+
             i += 4;
-            
+
             FileImpl file = new FileImpl();
             ushort madeVersion = getUShort();
             ushort minExtractVersion = getUShort();
@@ -396,22 +396,22 @@ public class ZipPolicy
             file.internalAttributes = getUShort();
             file.externalAttributes = getUInt();
             uint offset = getUInt();
-            
+
             if(i + nameLen + extraLen + commentLen > directoryOffset + directorySize)
                 throw new ZipException("Invalid Directory Entry 2");
-                
+
             file.path = cast(string)(data[i .. i + nameLen]);
             i += nameLen;
-            
+
             file.extra = cast(ubyte[])data[i .. i + extraLen];
             i += extraLen;
-            
+
             file.comment = cast(string)(data[i .. i + commentLen]);
             i += commentLen;
-            
+
             // Expand the actual file to get the compressed data now.
             expandMember(data, file, offset);
-            
+
             // Add the Member to the Listing
             if(file.path.endsWith("/"))
             {
@@ -425,7 +425,7 @@ public class ZipPolicy
         if( i != directoryOffset + directorySize)
             throw new ZipException("Invalid directory entry 3");
     }
-    
+
     /**
      * Serialize method which writes data stored in the archive to an array and returns it.
      */
@@ -433,7 +433,7 @@ public class ZipPolicy
     {
         if(archive.properties.comment.length > 0xFFFF)
             throw new ZipException("Archive comment longer than 655535");
-         
+
         // Ensure each file is compressed; compute size
         uint archiveSize = 0;
         uint directorySize = 0;
@@ -443,9 +443,9 @@ public class ZipPolicy
             archiveSize += 30 + file.path.length + file.extra.length + file._compressedData.length;
             directorySize += 46 + file.path.length + file.extra.length + file.comment.length;
         }
-        
+
         ubyte[] data = new ubyte[archiveSize + directorySize + 22 + archive.properties.comment.length];
-        
+
         // Helper Functions
         uint i = 0;
         void putUShort(ushort us)
@@ -453,20 +453,20 @@ public class ZipPolicy
             data[i .. i + 2] = nativeToLittleEndian(us);
             i += 2;
         }
-        
+
         void putUInt(uint ui)
         {
             data[i .. i + 4] = nativeToLittleEndian(ui);
             i += 4;
         }
-        
+
         // Store Records
         foreach(file ; archive.files)
         {
             file._offset = i;
             data[i .. i + 4] = RECORD_MAGIC_NUM;
             i += 4;
-            
+
             putUShort(20); // Member Minimum Extract Version
             putUShort(file.flags);
             putUShort(file.compressionMethod);
@@ -476,17 +476,17 @@ public class ZipPolicy
             putUInt(cast(uint)file._decompressedData.length);
             putUShort(cast(ushort)file.path.length);
             putUShort(cast(ushort)file.extra.length);
-            
+
             data[i .. i + file.path.length] = (cast(ubyte[])file.path)[];
             i += file.path.length;
-            
+
             data[i .. i + file.extra.length] = (cast(ubyte[])file.extra)[];
             i += file.extra.length;
-            
+
             data[i .. i + file._compressedData.length] = file.compressed[];
             i += file._compressedData.length;
         }
-        
+
         // Store Directory Entries
         uint directoryOffset = i;
         ushort numEntries = 0;
@@ -494,7 +494,7 @@ public class ZipPolicy
         {
             data[i .. i+4] = DIRECTORY_MAGIC_NUM;
             i += 4;
-            
+
             putUShort(20); // Made Version
             putUShort(20); // Min Extract Version
             putUShort(file.flags);
@@ -510,23 +510,23 @@ public class ZipPolicy
             putUShort(file.internalAttributes);
             putUInt(file.externalAttributes);
             putUInt(file._offset);
-            
+
             data[i .. i + file.path.length] = (cast(ubyte[])file.path)[];
             i += file.path.length;
-            
+
             data[i .. i + file.extra.length] = (cast(ubyte[])file.extra)[];
             i += file.extra.length;
-            
+
             data[i .. i + file.comment.length] = (cast(ubyte[])file.comment)[];
             i += file.comment.length;
-            
+
             ++numEntries;
         }
-        
+
         // Write End Directory Entry
         data[i .. i+4] = END_DIRECTORY_MAGIC_NUM;
         i += 4;
-        
+
         putUShort(0); // Disk Number
         putUShort(0); // Disk Start Dir
         putUShort(numEntries); // Number of Entries
@@ -534,9 +534,9 @@ public class ZipPolicy
         putUInt(directorySize);
         putUInt(directoryOffset);
         putUShort(cast(ushort)archive.properties.comment.length);
-        
+
         data[i .. data.length] = (cast(ubyte[])archive.properties.comment)[];
-        
+
         // Return result
         return cast(void[])data;
     }
@@ -567,13 +567,13 @@ unittest
 
     // Add a directory that already exists.
     output.addDirectory("directory/");
-    
+
     // Add a directory that does not exist.
     output.addDirectory("newdirectory/");
 
     // Remove unused directories
     output.removeEmptyDirectories();
-    
+
     // Ensure the only unused directory was removed.
     assert(output.getDirectory("newdirectory") is null);
 
@@ -592,4 +592,3 @@ unittest
     assert(input.numDirectories() == 3);
     assert(input.numMembers() == 5);
 }
-

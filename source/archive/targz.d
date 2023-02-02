@@ -7,7 +7,7 @@ License: $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0).
 
 Authors: Richard W Laughlin Jr.
 
-Source: http://github.com/rcythr/archive 
+Source: http://github.com/rcythr/archive
 
 Filter class which can be used by the Archive class to compress/decompress files into a .gz format.
 
@@ -66,31 +66,31 @@ public class GzFilter(int L)
     public static void[] compress(void[] data)
     {
         auto result = appender!(ubyte[])();
-        
+
         Compress compressor = new Compress(L, HeaderFormat.gzip);
         for(uint i=0; i < data.length; i += 1024)
         {
             result.put(cast(ubyte[])compressor.compress(data[i .. min(i+1024, data.length)]));
         }
         result.put(cast(ubyte[])compressor.flush());
-        
+
         return result.data;
     }
-    
+
     /**
      * Input data is processed to extract from the gzip format.
      */
     public static void[] decompress(void[] data)
     {
         auto result = appender!(ubyte[])();
-        
+
         UnCompress uncompressor = new UnCompress();
         for(uint i=0; i < data.length; i += 1024)
         {
             result.put(cast(ubyte[])uncompressor.uncompress(data[i .. min(i+1024, data.length)]));
         }
         result.put(cast(ubyte[])uncompressor.flush());
-        
+
         return result.data;
     }
 }
@@ -98,7 +98,7 @@ public class GzFilter(int L)
 /**
  * Convenience alias that simplifies the interface for users
  */
-alias TarGzArchive = Archive!(TarPolicy, GzFilter!6); 
+alias TarGzArchive = Archive!(TarPolicy, GzFilter!6);
 
 unittest
 {
@@ -120,13 +120,13 @@ unittest
 
     // Add a directory that already exists.
     output.addDirectory("directory/");
-    
+
     // Add a directory that does not exist.
     output.addDirectory("newdirectory/");
 
     // Remove unused directories
     output.removeEmptyDirectories();
-    
+
     // Ensure the only unused directory was removed.
     assert(output.getDirectory("newdirectory") is null);
 
