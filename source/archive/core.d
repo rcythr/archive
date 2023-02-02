@@ -23,17 +23,17 @@ private import std.string;
  * the docs for your specific format to find methods/members available for your specific format.
  */
 public class Archive(T, Filter = NullArchiveFilter)
-{    
+{
     /**
      * Alias to allow for easy referencing the proper archive File member type for Policy.
      */
     alias File = T.FileImpl;
-    
+
     /**
      * Alias to allow for easy referencing the proper archive Directory member type for Policy.
      */
     alias Directory = T.DirectoryImpl;
-    
+
     static if(T.hasProperties)
     {
         /**
@@ -42,35 +42,35 @@ public class Archive(T, Filter = NullArchiveFilter)
         */
         alias Properties = T.Properties;
     }
-    
+
     /**
     Constructor for archives which initializes the archive with the contents of the serialized archive
     stored in data.
     Params:
         data = serialized data of an archive in the proper format for the Policy.
      */
-    public this(void[] data) 
+    public this(void[] data)
     {
         // Cannot call this() because it may not be defined.
-        root = new Directory(); 
+        root = new Directory();
         static if(T.hasProperties)
             properties = new Properties();
         T.deserialize(Filter.decompress(data), this);
     }
-   
+
     static if(!T.isReadOnly)
     {
         /**
          * Constructor for read/write archives which does not require serialized data to create.
          */
-        public this() 
-        { 
-            root = new Directory(); 
+        public this()
+        {
+            root = new Directory();
             static if(T.hasProperties)
-                properties = new Properties(); 
+                properties = new Properties();
         }
     }
-    
+
     /**
      * Provides access to all files in the archive via a delegate method. This allows use in foreach loops.
      * Example:
@@ -94,7 +94,7 @@ public class Archive(T, Filter = NullArchiveFilter)
      * ---
      */
     @property public int delegate(int delegate(ref Directory)) directories() { return &root.directoriesOpApply; }
-    
+
     /**
      * Provides access to all files and directories in the archive via a delegate method. This allows use in foreach loops.
      * Example:
@@ -119,16 +119,16 @@ public class Archive(T, Filter = NullArchiveFilter)
     /**
      * Returns: The file associated with the given path variable, or null if no such file exists in the archive.
      */
-    public File getFile(string path) 
-    { 
-        return root.getFile(split(path, "/")); 
+    public File getFile(string path)
+    {
+        return root.getFile(split(path, "/"));
     }
 
     /**
      * Returns: The directory associated with the given path variable, the root for "/", or null if no such directory exists.
      */
-    public Directory getDirectory(string path) 
-    { 
+    public Directory getDirectory(string path)
+    {
         if(path.length == 0) // Handle ""
         {
             return root;
@@ -139,7 +139,7 @@ public class Archive(T, Filter = NullArchiveFilter)
         }
         else // Handle paths ending without /
         {
-            return root.getDirectory(split(path, "/")); 
+            return root.getDirectory(split(path, "/"));
         }
     }
 
@@ -164,48 +164,48 @@ public class Archive(T, Filter = NullArchiveFilter)
          * Serializes the archive.
          * Returns: the archive in a void[] array which can be saved to a file, sent over a network connection, etc.
          */
-        public void[] serialize() 
-        { 
+        public void[] serialize()
+        {
             return Filter.compress(T.serialize(this));
-        }   
+        }
     }
-    
+
     /**
      * Adds a file to the archive. If the path to the file contains directories that are not in the archive, they are added.
      * Throws: IllegalPathException when an element in the given path is already used for a file/directory or the path is otherwise invalid.
      * Example:
      * ---
      * // inserts apple.txt into the archive.
-     * archive.addFile(new archive.File("apple.txt")); 
+     * archive.addFile(new archive.File("apple.txt"));
      *
      * // inserts directory animals (if not exists) and dogs.txt into the archive.
-     * archive.addFile(new archive.File("animals/dogs.txt")); 
+     * archive.addFile(new archive.File("animals/dogs.txt"));
      * ---
      */
-    public void addFile(File member) 
-    { 
+    public void addFile(File member)
+    {
         if(member.path == null || member.path == "")
             throw new IllegalPathException("Files which are inserted into the archive must have a valid name");
-            
-        root.addFile(split(member.path, "/"), member); 
+
+        root.addFile(split(member.path, "/"), member);
     }
-    
+
     /**
      * Adds a directory to the archive. If the path to the directory contains directories that are not in the archive, they are added.
      * If the directory already exists it is not replaced with an empty directory.
-     * 
+     *
      * Returns: the final Directory in the path. (e.g. "dlang" for "languages/dlang/")
      * Throws: IllegalPathException when an element in the given path is already used for a file or the path is otherwise invalid.
      * Example:
      * ---
      * // inserts animals/birds/ into the archive.
-     * archive.addDirectory("animals/"); 
+     * archive.addDirectory("animals/");
      *
      * // inserts directory languages (if not exists) and dlang into the archive.
-     * archive.addDirectory("languages/dlang/"); 
+     * archive.addDirectory("languages/dlang/");
      * ---
      */
-    public Directory addDirectory(string path) 
+    public Directory addDirectory(string path)
     {
         if(path.length == 0)
         {
@@ -217,7 +217,7 @@ public class Archive(T, Filter = NullArchiveFilter)
         }
         else
         {
-            return root.addDirectory(split(path, "/")); 
+            return root.addDirectory(split(path, "/"));
         }
     }
 
@@ -231,8 +231,8 @@ public class Archive(T, Filter = NullArchiveFilter)
      * Removes a directory (and all contained files and directories) from the archive.
      * Returns: true if the directory was removed, false if it did not exist.
      */
-    public bool removeDirectory(string path) 
-    { 
+    public bool removeDirectory(string path)
+    {
         if(path.length == 0)
         {
             return false;
@@ -243,7 +243,7 @@ public class Archive(T, Filter = NullArchiveFilter)
         }
         else
         {
-            return root.removeDirectory(split(path, "/")); 
+            return root.removeDirectory(split(path, "/"));
         }
     }
 
@@ -251,16 +251,16 @@ public class Archive(T, Filter = NullArchiveFilter)
      * Removes all directories in the archive with no direct files or files in subdirectories.
      */
     public void removeEmptyDirectories() { root.removeEmptyDirectories(); }
-    
+
     static if(T.hasProperties)
     {
         /**
-         * (Optional) Archive-wide properties for the format associated with Policy. 
+         * (Optional) Archive-wide properties for the format associated with Policy.
          *      e.g. Tar archives do not have any archive-wide properties, while zip files have an archive comment.
          */
         public Properties properties;
     }
-    
+
     /**
      * The root directory of the archive. Public here to allow for manual recursive algorithms.
      */
@@ -285,14 +285,14 @@ public class NullArchiveFilter
 }
 
 /**
- * Common base class for all Archive members (Files and Directories). 
+ * Common base class for all Archive members (Files and Directories).
  * Provides common name management functionality and ability to iterate over both Files and Directories at once.
  */
 public class ArchiveMember
 {
     private bool _isDirectory;
     protected string _path;
-    
+
     protected this(bool isDirectory)
     {
         _isDirectory = isDirectory;
@@ -326,10 +326,10 @@ public class ArchiveMember
      *      e.g. for the path "a/b/c/e/fg.txt" the result is "fg.txt"
      * Returns: the final element in the path of this member.
      */
-    @property public string name() 
-    { 
-        string[] parts = split(_path, '/'); 
-        return parts[$-1]; 
+    @property public string name()
+    {
+        string[] parts = split(_path, '/');
+        return parts[$-1];
     }
 
     /**
@@ -338,10 +338,10 @@ public class ArchiveMember
      * Warning: Do not use this property while this member is currently part of an archive.
      */
     @property public void name(string newname)
-    { 
-        string[] parts = split(_path, '/'); 
-        parts[$-1] = newname; 
-        _path = join(parts, "/"); 
+    {
+        string[] parts = split(_path, '/');
+        parts[$-1] = newname;
+        _path = join(parts, "/");
     }
 
     /**
@@ -349,8 +349,8 @@ public class ArchiveMember
      * Returns: the path of this member.
      */
     @property string path()
-    { 
-        return _path; 
+    {
+        return _path;
     }
 
     /**
@@ -358,8 +358,8 @@ public class ArchiveMember
      * Warning: Do not use this property while this member is currently part of an archive.
      */
     @property void path(string newpath)
-    { 
-            _path = newpath; 
+    {
+            _path = newpath;
     }
 }
 
@@ -373,26 +373,26 @@ public class ArchiveDirectory(Policy) : ArchiveMember
      * Alias for referencing the correct File class in the Policy.
      */
     public alias File = Policy.FileImpl;
-    
+
     /**
      * Alias for referencing the correct Directory class in the Policy.
      */
     public alias Directory = Policy.DirectoryImpl;
 
     /**
-     * Default constructor for ArchiveDirectories. Used to create the root archive. 
+     * Default constructor for ArchiveDirectories. Used to create the root archive.
      * Note: Do not use without a subsequent call to *at least* .path = "path".
      */
     public this() { super(true, ""); }
- 
+
     /**
      * Constructs a new ArchiveDirectory with the given path name.
      */
     public this(string mypath) { super(true, mypath); }
-    
+
     /** ditto */
     public this(string[] parts) { super(true, parts); }
-    
+
     /*
      * Adds a member to the archive, creating subdirectories as necessary.
      */
@@ -428,7 +428,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
             dir.addFile(pathParts, file, i+1);
         }
     }
-    
+
     /*
      * Adds a chain of subdirectories, creating them as necessary.
      */
@@ -459,7 +459,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
             return dir.addDirectory(pathParts, i+1);
         }
     }
-   
+
     /*
      * Attempts to remove a member from the archive.
      */
@@ -499,9 +499,9 @@ public class ArchiveDirectory(Policy) : ArchiveMember
         }
         return false;
     }
-    
+
     /*
-     * Removes all empty directories from the archive. 
+     * Removes all empty directories from the archive.
      */
     public uint removeEmptyDirectories()
     {
@@ -521,7 +521,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
                 count += subdirCount;
             }
         }
-        
+
         foreach(string key; toRemove)
         {
             directories.remove(key);
@@ -530,7 +530,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
         count += files.length;
         return count;
     }
-   
+
     /*
      * Returns a file from the directory if it exists, otherwise null.
      */
@@ -549,11 +549,11 @@ public class ArchiveDirectory(Policy) : ArchiveMember
             return dir.getFile(pathParts, i+1);
         }
     }
-    
+
     /*
      * Returns the number of files up to n levels deep. Current directory is level 0.
      */
-    public size_t numFiles(size_t n, size_t cur=0) 
+    public size_t numFiles(size_t n, size_t cur=0)
     {
         if(n == cur)
         {
@@ -573,8 +573,8 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Returns the number of directories up to n levels deep. Current directory is level 0.
      */
-    public size_t numDirectories(size_t n, size_t cur=0) 
-    { 
+    public size_t numDirectories(size_t n, size_t cur=0)
+    {
         if(n == cur)
         {
             return directories.length; // The number of directories in this directory + this directory.
@@ -593,8 +593,8 @@ public class ArchiveDirectory(Policy) : ArchiveMember
     /*
      * Returns the number of files and directories up to n levels deep. Current directory is level 0.
      */
-    public size_t numMembers(size_t n, size_t cur=0) 
-    { 
+    public size_t numMembers(size_t n, size_t cur=0)
+    {
         if(n == cur)
         {
             return files.length + directories.length; // All files/directories in this directory.
@@ -638,10 +638,10 @@ public class ArchiveDirectory(Policy) : ArchiveMember
         foreach(Directory ad; directories)
         {
             result = ad.filesOpApply(dg);
-            if(result) 
+            if(result)
                 return result;
         }
-        
+
         foreach(File am; files)
         {
             result = dg(am);
@@ -650,7 +650,7 @@ public class ArchiveDirectory(Policy) : ArchiveMember
         }
         return result;
     }
- 
+
     /**
      * opApply method used for directory iteration.
      */
@@ -662,15 +662,15 @@ public class ArchiveDirectory(Policy) : ArchiveMember
             result = dg(ad);
             if(result)
                 return result;
-            
+
             result = ad.directoriesOpApply(dg);
-            if(result) 
+            if(result)
                 return result;
         }
-        
+
         return result;
     }
-   
+
     /**
      * opApply method for member iteration.
      */
@@ -680,20 +680,20 @@ public class ArchiveDirectory(Policy) : ArchiveMember
         foreach(Directory ad; directories)
         {
             ArchiveMember entry = ad;
-            
+
             result = dg(entry);
             if(result)
                 return result;
-            
+
             result = ad.membersOpApply(dg);
-            if(result) 
+            if(result)
                 return result;
         }
-        
+
         foreach(File am; files)
         {
             ArchiveMember entry = am;
-            
+
             result = dg(entry);
             if(result)
                 return result;
@@ -719,20 +719,20 @@ version(unittest)
         public static immutable(bool) isReadOnly = false;
         public static immutable(bool) hasProperties = false;
 
-        public static class FileImpl : ArchiveMember 
-        { 
+        public static class FileImpl : ArchiveMember
+        {
             public this() { super(false); }
-            public this(string path) { super(false, path); } 
+            public this(string path) { super(false, path); }
             public this(string[] path) { super(false, path); }
         }
-        
+
         public static class DirectoryImpl : ArchiveDirectory!(MockPolicy)
-        { 
+        {
             public this() { }
-            public this(string path) { super(path); } 
+            public this(string path) { super(path); }
             public this(string[] path) { super(path); }
         }
-        
+
         public static void deserialize(Filter)(void[] data, Archive!(MockPolicy, Filter) archive)
         {
         }
@@ -755,28 +755,28 @@ version(unittest)
             return data;
         }
     }
-        
+
     private class MockROPolicy
     {
         public static immutable(bool) isReadOnly = true;
         public static immutable(bool) hasProperties = true;
 
-        public static class FileImpl : ArchiveMember 
-        { 
+        public static class FileImpl : ArchiveMember
+        {
             public this() { super(false); }
-            public this(string path) { super(false, path); } 
+            public this(string path) { super(false, path); }
             public this(string[] path) { super(false, path); }
         }
 
-        public static class DirectoryImpl : ArchiveDirectory!MockROPolicy 
+        public static class DirectoryImpl : ArchiveDirectory!MockROPolicy
         {
             public this() { super(); }
-            public this(string path) { super(path); } 
+            public this(string path) { super(path); }
             public this(string[] path) { super(path); }
         }
-        
+
         public static class Properties { }
-        
+
         public static void deserialize(Filter)(void[] data, Archive!(MockROPolicy, Filter) archive)
         {
             static import std.algorithm;
@@ -803,14 +803,14 @@ unittest
     alias ArchType = Archive!(MockPolicy, MockFilter);
     alias File = MockPolicy.FileImpl;
     alias Directory = MockPolicy.DirectoryImpl;
-    
+
     // Archive tests
     ArchType arch = new ArchType();
 
     // Add top-level member
     arch.addFile(new File("apples.txt"));
-   
-    // Add member adding in implicit directory. 
+
+    // Add member adding in implicit directory.
     arch.addFile(new File("apples/oranges.txt"));
 
     // Add member, adding in implicit directory while using one previously defined.
@@ -846,7 +846,7 @@ unittest
     assert(arch.numFiles(0) == 1);
     assert(arch.numDirectories(0) == 2);
     assert(arch.numMembers(0) == 3);
-    
+
     // Check num* at level = 1 is correct
     assert(arch.numFiles(1) == 2);
     assert(arch.numDirectories(1) == 6);
