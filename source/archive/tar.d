@@ -409,6 +409,7 @@ public class TarPolicy
                 {
                     DirectoryImpl dir = archive.addDirectory(filename);
 
+                    dir.modificationTime = octalStrToLong(header.modificationTime);
                     // Add additional ustar properties (or "" if not present)
                     dir.owner = owner;
                     dir.group = group;
@@ -491,7 +492,7 @@ public class TarPolicy
                 header.ownerId = rightJustify(intToOctalStr(0), 7) ~ "\0";
                 header.groupId = rightJustify(intToOctalStr(0), 7) ~ "\0";
                 header.size = rightJustify(intToOctalStr(cast(uint)file._data.length), 11) ~ " ";
-                header.modificationTime = rightJustify(longToOctalStr(file.modificationTime), 11) ~ " ";
+                sformat(header.modificationTime, "%o", file.modificationTime);
                 header.linkId = cast(char)(file.typeFlag);
                 header.linkedFilename = strToBytes(file.linkName, 100);
 
@@ -560,7 +561,7 @@ public class TarPolicy
                 header.ownerId = rightJustify(intToOctalStr(0), 7) ~ "\0";
                 header.groupId = rightJustify(intToOctalStr(0), 7) ~ "\0";
                 header.size = rightJustify(intToOctalStr(0), 11) ~ " ";
-                header.modificationTime = rightJustify(longToOctalStr(directory.modificationTime), 11) ~ " ";
+                sformat(header.modificationTime, "%o", directory.modificationTime);
                 header.linkId = cast(char)(TarTypeFlag.directory);
 
                 // Set owner name if needed.
@@ -611,6 +612,7 @@ alias TarArchive = Archive!(TarPolicy);
 
 unittest
 {
+    immutable February2023 = 1675_341_079;
     string data1 = "HELLO\nI AM A FILE WITH SOME DATA\n1234567890\nABCDEFGHIJKLMOP";
     immutable(ubyte)[] data2 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -620,11 +622,13 @@ unittest
     TarArchive.File file1 = new TarArchive.File();
     file1.path = "apple.txt";
     file1.data = data1;
+    file1.modificationTime = February2023;
     output.addFile(file1);
 
     // Add a file into a non top level directory.
     TarArchive.File file2 = new TarArchive.File("directory/directory/directory/apple.txt");
     file2.data = data2;
+    file2.modificationTime = February2023 + 42;
     output.addFile(file2);
 
     // Add a directory that already exists.
@@ -636,6 +640,9 @@ unittest
     // Remove unused directories
     output.removeEmptyDirectories();
 
+    // Make sure we have non-0 modification time on at least one directory
+    output.getDirectory("directory/").modificationTime = February2023 + 84;
+
     // Ensure the only unused directory was removed.
     assert(output.getDirectory("newdirectory") is null);
 
@@ -646,8 +653,16 @@ unittest
     TarArchive input = new TarArchive(output.serialize());
 
     // Make sure that there is a file named apple.txt and a file named directory/directory/directory/apple.txt
-    assert(input.getFile("apple.txt") !is null);
+    if (auto file = input.getFile("apple.txt"))
+        assert(file.modificationTime == February2023);
+    else
+        assert(0, "Required file is not present after deserialization");
     assert(input.getFile("directory/directory/directory/apple.txt") !is null);
+
+    if (auto dir = input.getDirectory("directory/"))
+        assert(dir.modificationTime == February2023 + 84);
+    else
+        assert(0, "Required directory is not present after deserialization");
 
     // Make sure there are no extra directories or files
     assert(input.numFiles() == 2);
